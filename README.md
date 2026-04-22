@@ -1,6 +1,6 @@
 # Soundscribe
 
-A visual soundwave tool — turn text and images into waveform art, right in your browser.
+A visual soundwave tool, turn text and images into waveform art, right in your browser.
 
 Live at: https://soundscribe.ainafahy.com
 
@@ -8,7 +8,7 @@ Live at: https://soundscribe.ainafahy.com
 
 Soundscribe stands on the shoulders of two wonderful humans:
 
-- **Jen Cantwell** (who now goes by [Jen Frankwell](https://jenfrankwell.ink/)) — the Scottish artist whose 2010 piece *Letter Home* sparked everything. Her artwork imagined a migrated bird writing home, its voice rendered as visual waveforms on paper. The original artwork: [Flickr album](https://www.flickr.com/photos/jencantwell/albums/72157628722284255).
+- **Jen Cantwell** (who now goes by [Jen Frankwell](https://jenfrankwell.ink/)) — the Scottish artist whose 2011 piece *Letter Home* sparked everything. Her artwork imagined a migrated bird writing home, its voice rendered as visual waveforms on paper. The original artwork: [Flickr album](https://www.flickr.com/photos/jencantwell/albums/72157628722284255).
 
 - **[@Amustache](https://github.com/Amustache)** — who, inspired by Jen's piece, built [Cantwell](https://github.com/Amustache/Cantwell): a Python CLI tool that converts text-to-speech audio into visual soundwave PDFs. Cantwell is the technical ancestor of Soundscribe.
 

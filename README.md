@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Soundscribe
 
-## Getting Started
+A visual soundwave tool — turn text and images into waveform art, right in your browser.
 
-First, run the development server:
+Live at: https://soundscribe.ainafahy.com
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Lineage
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Soundscribe stands on the shoulders of two wonderful humans:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Jen Cantwell** (who now goes by [Jen Frankwell](https://jenfrankwell.ink/)) — the Scottish artist whose 2010 piece *Letter Home* sparked everything. Her artwork imagined a migrated bird writing home, its voice rendered as visual waveforms on paper. The original artwork: [Flickr album](https://www.flickr.com/photos/jencantwell/albums/72157628722284255).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **[@Amustache](https://github.com/Amustache)** — who, inspired by Jen's piece, built [Cantwell](https://github.com/Amustache/Cantwell): a Python CLI tool that converts text-to-speech audio into visual soundwave PDFs. Cantwell is the technical ancestor of Soundscribe.
 
-## Learn More
+Soundscribe extends that lineage in two ways:
+1. It gives Cantwell's text-to-waveform idea a friendly UI, so anyone can use it without a terminal.
+2. It adds a second mode: image-to-waveform, turning any photograph into a dense visual waveform texture.
 
-To learn more about Next.js, take a look at the following resources:
+## What it does
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **📝 Text → Waveform** — Write a letter, hear it spoken by your browser, watch it become a visual soundwave.
+- **🖼️ Image → Waveform** — Upload a photograph, watch it get scanned and rewritten as dense horizontal waveforms.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Export as PNG, SVG, or PDF. No account, no upload to a server, no cost. Everything happens in your browser.
 
-## Deploy on Vercel
+## Tech
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Built with Next.js, TypeScript, and the Web Canvas + Web Speech APIs. No backend. No tracking. Runs entirely client-side.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+[MIT](./LICENSE). Use it, fork it, remix it, remake it. If you make something cool with it, I'd love to see — tag me on [Twitter/X](https://twitter.com/ainafahy) or open an issue.
+
+## Credits
+
+- Concept: Jen Cantwell
+- Original code: [@Amustache](https://github.com/Amustache)
+- UI design & this implementation: [Aïna Fahy](https://ainafahy.com)
+- Inspired in tool-making spirit by [asciinator.app](https://asciinator.app/)

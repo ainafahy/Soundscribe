@@ -36,7 +36,7 @@ export default function Footer() {
         >
           Source on GitHub
         </a>
-        . MIT licensed · inspired by asciinator.app in spirit.
+        . MIT licensed.
       </div>
       <div className="site-footer-version" title={`Soundscribe ${VERSION}`}>
         {VERSION}

@@ -99,6 +99,13 @@ export default function TextPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  /** Compose progress. `stage: "rendering"` means kokoro's done and we're
+   * now running jsPDF (the slow stretch in production builds). */
+  const [compose, setCompose] = useState<
+    | { stage: "synth"; current: number; total: number; label: string }
+    | { stage: "rendering" }
+    | null
+  >(null);
   // Cache of audio buffers keyed by the field text — so edits that don't
   // change a field don't re-synthesise it.
   const audioCache = useRef<Map<string, Float32Array>>(new Map());
@@ -139,6 +146,14 @@ export default function TextPage() {
       setToast("fill in at least one field");
       return;
     }
+    // Open the preview tab synchronously while the click's user-gesture
+    // context is still valid — most browsers block window.open() called
+    // after an await. We'll navigate it to the blob URL once the PDF is
+    // ready. Drop `noopener` here: browsers return null from open() when
+    // noopener is set, which would prevent the later location set.
+    const previewTab =
+      typeof window !== "undefined" ? window.open("", "_blank") : null;
+
     setIsGenerating(true);
     try {
       await ensureTtsReady();
@@ -152,12 +167,28 @@ export default function TextPage() {
       const RIGHT_MARGIN_PX = 100;
       const rowHeightPx = Math.round(MARGIN * 0.55); // ~82px per row at 300 DPI
 
+      // Non-space rows, indexed so we can report "N of M" during synthesis.
+      const workRows = rows.filter((r) => !r.isSpace && r.text);
+      const total = workRows.length;
+
       const letterRows: Array<LetterRow | null> = [];
+      let workIdx = 0;
       for (const row of rows) {
         if (row.isSpace || !row.text) {
           letterRows.push(null);
           continue;
         }
+        workIdx += 1;
+        setCompose({
+          stage: "synth",
+          current: workIdx,
+          total,
+          label: String(row.key),
+        });
+        // Yield to the event loop so the button label actually repaints
+        // before we block on the next worker round-trip.
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+
         const audio = await synthesize(row.text);
         const sampleRate = 24000; // kokoro
         const maxPx = Math.max(100, PAGE_W - row.offset - RIGHT_MARGIN_PX);
@@ -177,19 +208,38 @@ export default function TextPage() {
         letterRows.push({ canvas, offsetPx: row.offset });
       }
 
+      // Surface the "rendering pdf" stage — jsPDF's encode can take 10–30s
+      // on long paragraphs in production builds.
+      setCompose({ stage: "rendering" });
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+
       const blob = renderLetterPdfBlob(letterRows, { title: "Soundscribe letter" });
-      // Inline preview — replace any previous object URL so we don't leak.
+      // Replace any previous object URL so we don't leak.
       if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
       const url = URL.createObjectURL(blob);
       pdfUrlRef.current = url;
       setPdfUrl(url);
-      setToast("letter rendered");
+
+      // Navigate the pre-opened preview tab to the blob URL. If the tab
+      // was blocked/closed, fall back to an anchor click.
+      if (previewTab && !previewTab.closed) {
+        try {
+          previewTab.location.href = url;
+          setToast("letter ready");
+        } catch {
+          setToast("pop-up blocked — use download pdf");
+        }
+      } else {
+        setToast("pop-up blocked — use download pdf");
+      }
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "unknown";
       setToast(`couldn't generate: ${msg}`);
+      if (previewTab && !previewTab.closed) previewTab.close();
     } finally {
       setIsGenerating(false);
+      setCompose(null);
     }
   }, [rows, hasAny, synthesize]);
 
@@ -272,6 +322,12 @@ export default function TextPage() {
     if (tts.phase === "loading") {
       if (tts.total > 0) return `preparing voice · ${loadingPct}%`;
       return "preparing voice…";
+    }
+    if (compose?.stage === "synth") {
+      return `composing ${compose.current}/${compose.total} · ${compose.label}`;
+    }
+    if (compose?.stage === "rendering") {
+      return "rendering pdf…";
     }
     if (isGenerating) return "composing…";
     return null;
@@ -460,16 +516,20 @@ export default function TextPage() {
             )}
 
             {pdfUrl && (
-              <div className={styles.pdfPreview} aria-label="letter preview">
-                <div className={styles.pdfFrameWrap}>
-                  <iframe
-                    key={pdfUrl}
-                    src={pdfUrl}
-                    className={styles.pdfFrame}
-                    title="generated letter"
-                  />
+              <div className={styles.pdfReady} aria-label="letter ready">
+                <div className={styles.pdfReadyCopy}>
+                  <span className={styles.pdfReadyDot} aria-hidden="true" />
+                  <span>your letter is ready — opened in a new tab.</span>
                 </div>
                 <div className={styles.pdfActions}>
+                  <a
+                    className="nm-btn"
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    open again
+                  </a>
                   <button
                     type="button"
                     className="nm-btn primary"

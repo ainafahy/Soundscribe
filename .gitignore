@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local reference material (original Python implementation — see CREDITS.md)
 REFERENCE_webapp.py
+
+# local preview launch config (per-machine)
+.claude/

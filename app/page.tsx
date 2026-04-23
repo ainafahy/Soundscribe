@@ -15,17 +15,9 @@ export default function Home() {
           <span className={styles.titleBreak}> from anything.</span>
         </h1>
         <p className={styles.lede}>
-          Soundscribe turns photographs and written words into dense,
-          paper-worthy waveforms. A browser-native port of Jen Cantwell&rsquo;s{" "}
-          <em>Letter Home</em> and @Amustache&rsquo;s{" "}
-          <a
-            href="https://github.com/Amustache/Cantwell"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Cantwell
-          </a>{" "}
-          CLI. No backend. No uploads. No tracking.
+          Soundscribe turns photographs and written words into waveforms.
+          No backend. No uploads. No tracking. Play around and send me
+          feedback ! &lt;3
         </p>
       </section>
 

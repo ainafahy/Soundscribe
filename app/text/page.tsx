@@ -9,7 +9,7 @@ import {
 } from "react";
 import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
-import { renderAudioRowCanvas } from "@/lib/audioWaveform";
+import { renderAudioRowCanvas, trimAudioSilence } from "@/lib/audioWaveform";
 import { renderLetterPdfBlob, type LetterRow } from "@/lib/renderPdf";
 import {
   ADDR_OFF,
@@ -189,7 +189,10 @@ export default function TextPage() {
         // before we block on the next worker round-trip.
         await new Promise((r) => requestAnimationFrame(() => r(null)));
 
-        const audio = await synthesize(row.text);
+        const rawAudio = await synthesize(row.text);
+        // Trim kokoro's preroll + postroll silence. Raw audio stays
+        // cached for read-aloud; only the render-time slice gets trimmed.
+        const audio = trimAudioSilence(rawAudio);
         const sampleRate = 24000; // kokoro
         const maxPx = Math.max(100, PAGE_W - row.offset - RIGHT_MARGIN_PX);
         const naturalPx = Math.round((audio.length / sampleRate) * PX_PER_SECOND);

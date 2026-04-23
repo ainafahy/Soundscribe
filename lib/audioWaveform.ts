@@ -12,6 +12,30 @@
  * body paragraph instead of fading into near-silence.
  */
 
+/**
+ * Trim leading and trailing silence. Kokoro emits ~120–180ms of silence
+ * at the start of every utterance (and a smaller tail). If we leave it
+ * in, those samples render as empty pixels at the canvas's left edge —
+ * which visually shifts the speech to the right of the row and, for
+ * rows with a large left offset (ADDR_OFF=1800), makes addresses look
+ * crammed into the far-right corner of the page. Trimming makes the
+ * canvas's left edge coincide with the first audible sample, so the
+ * row's on-page `offsetPx` really does act as a left margin.
+ *
+ * The threshold is deliberately small — kokoro's silence is close to
+ * machine-zero, and real speech hits 0.05+ within the first ms of voicing.
+ */
+export function trimAudioSilence(audio: Float32Array, threshold = 0.015): Float32Array {
+  let start = 0;
+  while (start < audio.length && Math.abs(audio[start]) < threshold) start++;
+  let end = audio.length;
+  while (end > start && Math.abs(audio[end - 1]) < threshold) end--;
+  if (start === 0 && end === audio.length) return audio;
+  // Keep a tiny runway of 1 ms so extreme attack transients don't get clipped.
+  const runway = Math.min(24, start);
+  return audio.subarray(start - runway, end);
+}
+
 export interface AudioRowRenderOptions {
   audio: Float32Array;
   /** Intrinsic canvas pixel width. Every row is normalized to this width. */

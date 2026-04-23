@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local reference material (original Python implementation — see CREDITS.md)
+REFERENCE_webapp.py

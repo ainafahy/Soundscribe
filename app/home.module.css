@@ -1,0 +1,157 @@
+.hero {
+  padding: 2.5rem 1rem 3rem;
+  max-width: 720px;
+}
+
+.eyebrow {
+  font-family: var(--display);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  color: var(--accent-deep);
+  margin: 0 0 1rem;
+  padding: 0.4rem 1rem;
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--nm-inset-sm);
+  text-transform: lowercase;
+}
+
+.title {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 5vw, 3.5rem);
+  color: var(--ink-strong);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.5rem;
+  font-weight: 400;
+}
+
+.titleBreak {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-dim);
+  font-size: 0.85em;
+}
+
+.lede {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--ink);
+  margin: 0;
+  max-width: 56ch;
+}
+
+.lede a {
+  color: var(--accent-deep);
+  border-bottom: 1px solid rgba(111, 128, 105, 0.4);
+  transition: border-color 0.2s;
+}
+
+.lede a:hover {
+  border-bottom-color: var(--accent-deep);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem 1.75rem 1.75rem;
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--nm-raised);
+  transition: transform 0.25s cubic-bezier(0.3, 0.1, 0.25, 1),
+    box-shadow 0.25s cubic-bezier(0.3, 0.1, 0.25, 1);
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 12px 12px 28px var(--sh), -12px -12px 28px var(--hl);
+}
+
+.card:active {
+  transform: translateY(0);
+  box-shadow: var(--nm-raised-sm);
+}
+
+.cardGlyph {
+  width: 100%;
+  padding: 1.25rem 1rem;
+  background: var(--bg);
+  border-radius: var(--radius);
+  box-shadow: var(--nm-inset-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-deep);
+}
+
+.cardWave {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  display: block;
+}
+
+.cardCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cardKicker {
+  font-family: var(--display);
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+}
+
+.cardTitle {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  color: var(--ink-strong);
+  letter-spacing: -0.01em;
+  margin: 0;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.cardDesc {
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink);
+  margin: 0;
+}
+
+.cardCta {
+  margin-top: 0.5rem;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--accent-deep);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  letter-spacing: 0.005em;
+}
+
+.arr {
+  transition: transform 0.2s cubic-bezier(0.3, 0.1, 0.25, 1);
+}
+
+.card:hover .arr {
+  transform: translateX(4px);
+}

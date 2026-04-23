@@ -1,65 +1,87 @@
-import Image from "next/image";
+import Link from "next/link";
+import Masthead from "@/components/Masthead";
+import Footer from "@/components/Footer";
+import styles from "./home.module.css";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+    <div className="wrap">
+      <Masthead />
+
+      <section className={styles.hero}>
+        <p className={styles.eyebrow}>a visual soundwave tool</p>
+        <h1 className={styles.title}>
+          Make a wave
+          <span className={styles.titleBreak}> from anything.</span>
+        </h1>
+        <p className={styles.lede}>
+          Soundscribe turns photographs and written words into dense,
+          paper-worthy waveforms. A browser-native port of Jen Cantwell&rsquo;s{" "}
+          <em>Letter Home</em> and @Amustache&rsquo;s{" "}
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://github.com/Amustache/Cantwell"
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            Cantwell
+          </a>{" "}
+          CLI. No backend. No uploads. No tracking.
+        </p>
+      </section>
+
+      <section className={styles.cards}>
+        <Link href="/image" className={styles.card}>
+          <div className={styles.cardGlyph} aria-hidden="true">
+            <svg viewBox="0 0 120 64" className={styles.cardWave}>
+              <path
+                d="M 0 32 C 8 10, 14 54, 22 32 S 34 10, 42 32 S 54 54, 62 32 S 74 10, 82 32 S 94 54, 102 32 S 114 10, 120 32"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+          <div className={styles.cardCopy}>
+            <span className={styles.cardKicker}>01 · image</span>
+            <h2 className={styles.cardTitle}>Image &rarr; Waveform</h2>
+            <p className={styles.cardDesc}>
+              Drop any photograph. Soundscribe scans its pixels row by row
+              and rewrites them as dense, amplitude-modulated lines.
+              Export as PNG, SVG, or PDF.
+            </p>
+            <span className={styles.cardCta}>
+              open the image tool <span className={styles.arr}>&rarr;</span>
+            </span>
+          </div>
+        </Link>
+
+        <Link href="/text" className={styles.card}>
+          <div className={styles.cardGlyph} aria-hidden="true">
+            <svg viewBox="0 0 120 64" className={styles.cardWave}>
+              <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+                <path d="M 4 18 L 116 18" opacity="0.35" />
+                <path d="M 4 32 C 18 20, 30 44, 44 32 S 66 18, 80 32 S 104 42, 116 32" />
+                <path d="M 4 48 L 68 48" opacity="0.35" />
+              </g>
+            </svg>
+          </div>
+          <div className={styles.cardCopy}>
+            <span className={styles.cardKicker}>02 · text</span>
+            <h2 className={styles.cardTitle}>Text &rarr; Waveform</h2>
+            <p className={styles.cardDesc}>
+              Write a letter. Each field — address, greeting, body,
+              signature — becomes its own handwritten-looking row of
+              waveform. Export the whole thing as a PDF letter.
+            </p>
+            <span className={styles.cardCta}>
+              open the text tool <span className={styles.arr}>&rarr;</span>
+            </span>
+          </div>
+        </Link>
+      </section>
+
+      <Footer />
     </div>
   );
 }

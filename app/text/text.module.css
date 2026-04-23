@@ -149,3 +149,36 @@
   border-left: 3px solid var(--accent-warm);
 }
 
+/* ---------- Inline PDF preview ---------- */
+
+.pdfPreview {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.pdfFrameWrap {
+  position: relative;
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: var(--nm-raised);
+  padding: 0.65rem;
+}
+
+.pdfFrame {
+  width: 100%;
+  aspect-ratio: 210 / 297;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  display: block;
+  box-shadow: var(--nm-inset-sm);
+}
+
+.pdfActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+

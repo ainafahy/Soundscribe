@@ -98,10 +98,12 @@ export default function TextPage() {
   const [tts, setTts] = useState<TtsStatus>({ phase: "idle", loaded: 0, total: 0 });
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   // Cache of audio buffers keyed by the field text — so edits that don't
   // change a field don't re-synthesise it.
   const audioCache = useRef<Map<string, Float32Array>>(new Map());
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pdfUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     return subscribeTts((s) => {
@@ -123,17 +125,6 @@ export default function TextPage() {
   const rows = useMemo(() => buildRows(fields), [fields]);
   const hasAny = rows.some((r) => !r.isSpace && r.text);
 
-  const downloadBlob = useCallback((blob: Blob, name: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 500);
-  }, []);
-
   /** Synthesise (or fetch from cache) one field's audio. */
   const synthesize = useCallback(async (text: string): Promise<Float32Array> => {
     const cached = audioCache.current.get(text);
@@ -152,10 +143,13 @@ export default function TextPage() {
     try {
       await ensureTtsReady();
 
-      // Fixed per-row pixel width — every row normalises to the same paper-width
-      // target so short fields visually match the body, regardless of duration.
-      const rowTextWidth = (off: number) => Math.max(200, PAGE_W - off - 100);
-
+      // Duration-proportional row widths. Matches the Python reference
+      // (matplotlib figsize = min(samples/SAMPLE_CONST, 1) * 7 inches at
+      // 300 DPI = up to 2100 px wide for ~4.5 s of audio → ~467 px/s).
+      // Short fields produce short rows; a long body fills to near the
+      // right margin and any excess audio is truncated ("cut").
+      const PX_PER_SECOND = 450;
+      const RIGHT_MARGIN_PX = 100;
       const rowHeightPx = Math.round(MARGIN * 0.55); // ~82px per row at 300 DPI
 
       const letterRows: Array<LetterRow | null> = [];
@@ -164,12 +158,18 @@ export default function TextPage() {
           letterRows.push(null);
           continue;
         }
-        // Synthesize sequentially — the worker handles one at a time anyway
-        // and this keeps memory bounded for very long body paragraphs.
         const audio = await synthesize(row.text);
+        const sampleRate = 24000; // kokoro
+        const maxPx = Math.max(100, PAGE_W - row.offset - RIGHT_MARGIN_PX);
+        const naturalPx = Math.round((audio.length / sampleRate) * PX_PER_SECOND);
+        const widthPx = Math.max(80, Math.min(naturalPx, maxPx));
+        const usedAudio =
+          naturalPx > maxPx
+            ? audio.subarray(0, Math.floor((maxPx / PX_PER_SECOND) * sampleRate))
+            : audio;
         const canvas = renderAudioRowCanvas({
-          audio,
-          widthPx: rowTextWidth(row.offset),
+          audio: usedAudio,
+          widthPx,
           heightPx: rowHeightPx,
           fg: "#000000",
           bg: "#ffffff",
@@ -178,8 +178,12 @@ export default function TextPage() {
       }
 
       const blob = renderLetterPdfBlob(letterRows, { title: "Soundscribe letter" });
-      downloadBlob(blob, "letter.pdf");
-      setToast("letter.pdf saved");
+      // Inline preview — replace any previous object URL so we don't leak.
+      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+      const url = URL.createObjectURL(blob);
+      pdfUrlRef.current = url;
+      setPdfUrl(url);
+      setToast("letter rendered");
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "unknown";
@@ -187,7 +191,17 @@ export default function TextPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [rows, hasAny, downloadBlob, synthesize]);
+  }, [rows, hasAny, synthesize]);
+
+  const downloadCurrentPdf = useCallback(() => {
+    if (!pdfUrl) return;
+    const a = document.createElement("a");
+    a.href = pdfUrl;
+    a.download = "letter.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [pdfUrl]);
 
   /** Concatenate all non-empty fields into one utterance and play as WAV. */
   const readAloud = useCallback(async () => {
@@ -242,6 +256,10 @@ export default function TextPage() {
         } catch {
           /* ignore */
         }
+      }
+      if (pdfUrlRef.current) {
+        URL.revokeObjectURL(pdfUrlRef.current);
+        pdfUrlRef.current = null;
       }
     };
   }, []);
@@ -439,6 +457,28 @@ export default function TextPage() {
                 first generation downloads the voice model (~80&nbsp;MB).
                 only happens once.
               </p>
+            )}
+
+            {pdfUrl && (
+              <div className={styles.pdfPreview} aria-label="letter preview">
+                <div className={styles.pdfFrameWrap}>
+                  <iframe
+                    key={pdfUrl}
+                    src={pdfUrl}
+                    className={styles.pdfFrame}
+                    title="generated letter"
+                  />
+                </div>
+                <div className={styles.pdfActions}>
+                  <button
+                    type="button"
+                    className="nm-btn primary"
+                    onClick={downloadCurrentPdf}
+                  >
+                    download pdf
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 

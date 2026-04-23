@@ -75,7 +75,8 @@ function buildRows(fields: Fields): RowSpec[] {
   return rows;
 }
 
-/** Build an on-screen preview of the letter (low-res; the PDF is the real deal). */
+/** Build an on-screen preview of the letter. The PDF is the real deal — this
+ *  just gives immediate visual feedback at screen resolution. */
 function PreviewSheet({ rows }: { rows: RowSpec[] }) {
   const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([]);
 
@@ -89,17 +90,18 @@ function PreviewSheet({ rows }: { rows: RowSpec[] }) {
         return;
       }
       const samples = textSamples(row.text, { maxSamples: row.limit, cut: row.cut });
-      // Preview uses pixel widths scaled down from A4 (PAGE_W px @ 300 DPI → widthPx).
-      const widthScale = canvas.clientWidth / (PAGE_W * 0.3);
-      const widthPx = Math.max(80, Math.round((PAGE_W - row.offset) * 0.3 * widthScale));
-      const heightPx = 36;
+      // The canvas's display width (after its row's padding-left offset) is
+      // the width we want to render at. 2x for crisp lines on high-DPI.
+      const displayW = Math.max(120, Math.round(canvas.clientWidth || 400));
+      const dpr = typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 1;
+      const widthPx = Math.round(displayW * dpr);
+      const heightPx = Math.round(48 * dpr);
       const drawn = renderTextRowCanvas({
         samples,
         widthPx,
         heightPx,
         fg: "#111111",
         bg: "#ffffff",
-        thickness: 1.1,
       });
       canvas.width = drawn.width;
       canvas.height = drawn.height;
@@ -185,7 +187,6 @@ export default function TextPage() {
           heightPx: rowHeightPx,
           fg: "#000000",
           bg: "#ffffff",
-          thickness: 1.2,
         });
         return { canvas, offsetPx: row.offset };
       });

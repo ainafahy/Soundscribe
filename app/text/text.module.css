@@ -99,8 +99,8 @@
 
 .rowInner {
   flex: 1;
-  min-height: 18px;
-  max-height: 44px;
+  min-height: 24px;
+  max-height: 56px;
 }
 
 .rowInner canvas {

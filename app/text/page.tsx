@@ -1,9 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
-import { renderTextRowCanvas, textSamples } from "@/lib/textWaveform";
+import { renderAudioRowCanvas } from "@/lib/audioWaveform";
 import { renderLetterPdfBlob, type LetterRow } from "@/lib/renderPdf";
 import {
   ADDR_OFF,
@@ -11,8 +17,14 @@ import {
   MARGIN,
   PAGE_W,
   ROWS_OFF,
-  SAMPLE_CONST,
 } from "@/lib/letterConsts";
+import {
+  audioToWavBlob,
+  ensureTtsReady,
+  subscribeTts,
+  ttsGenerate,
+  type TtsStatus,
+} from "@/lib/ttsClient";
 import styles from "./text.module.css";
 
 interface Fields {
@@ -26,123 +38,68 @@ interface Fields {
 }
 
 const DEFAULTS: Fields = {
-  address1: "Jearom Chaoss",
-  address2: "Chemin of Thedsq 55",
+  address1: "Jerome Chaoss",
+  address2: "55 Thedsq Road",
   address3: "86322 Jeslamos",
-  dear: "Salut mon cher,",
-  text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam consectetur vel velit eget ultricies. In et lacinia nisi, ac cursus ipsum. Pellentesque efficitur at tellus feugiat consequat. Phasellus orci sem, pharetra non malesuada sed, aliquet vitae arcu.",
-  conclusion: "Best regards,",
-  signature: "Me, myself and I",
+  dear: "Dear friend,",
+  text: "I hope this letter finds you well. It has been too long since we last spoke, and I wanted to send a small wave across the distance. The days here move slowly — mornings full of coffee and warm light, afternoons spent reading, evenings that fold quietly into night. Write back when you can. I miss you.",
+  conclusion: "With warmth,",
+  signature: "Yours truly",
 };
 
+type FieldKey = keyof Fields;
+
 interface RowSpec {
-  key: keyof Fields | string;
+  key: FieldKey | string;
   text: string;
   offset: number;
-  limit: number;
   cut: boolean;
   isSpace?: boolean;
 }
 
 function buildRows(fields: Fields): RowSpec[] {
   const rows: RowSpec[] = [];
-  const push = (
-    key: string,
-    text: string,
-    offset: number,
-    limit: number,
-    cut: boolean,
-  ) => rows.push({ key, text, offset, limit, cut });
+  const push = (key: string, text: string, offset: number, cut: boolean) =>
+    rows.push({ key, text, offset, cut });
   const space = (key: string) =>
-    rows.push({ key, text: "", offset: 0, limit: 0, cut: true, isSpace: true });
+    rows.push({ key, text: "", offset: 0, cut: true, isSpace: true });
 
-  if (fields.address1) push("address1", fields.address1, ADDR_OFF, Math.floor(SAMPLE_CONST / 4), true);
-  if (fields.address2) push("address2", fields.address2, ADDR_OFF, Math.floor(SAMPLE_CONST / 4), true);
-  if (fields.address3) push("address3", fields.address3, ADDR_OFF, Math.floor(SAMPLE_CONST / 4), true);
+  if (fields.address1) push("address1", fields.address1, ADDR_OFF, true);
+  if (fields.address2) push("address2", fields.address2, ADDR_OFF, true);
+  if (fields.address3) push("address3", fields.address3, ADDR_OFF, true);
   if (fields.address1 || fields.address2 || fields.address3) space("space1");
 
   if (fields.dear) {
-    push("dear", fields.dear, DEAR_OFF, SAMPLE_CONST, true);
+    push("dear", fields.dear, DEAR_OFF, true);
     space("space2");
   }
   if (fields.text) {
-    push("text", fields.text, ROWS_OFF, SAMPLE_CONST, false);
+    push("text", fields.text, ROWS_OFF, false);
     space("space3");
   }
-  if (fields.conclusion) push("conclusion", fields.conclusion, ROWS_OFF, SAMPLE_CONST, true);
-  if (fields.signature) push("signature", fields.signature, ROWS_OFF, SAMPLE_CONST, true);
+  if (fields.conclusion) push("conclusion", fields.conclusion, ROWS_OFF, true);
+  if (fields.signature) push("signature", fields.signature, ROWS_OFF, true);
 
   return rows;
-}
-
-/** Build an on-screen preview of the letter. The PDF is the real deal — this
- *  just gives immediate visual feedback at screen resolution. */
-function PreviewSheet({ rows }: { rows: RowSpec[] }) {
-  const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([]);
-
-  useEffect(() => {
-    rows.forEach((row, idx) => {
-      const canvas = canvasRefs.current[idx];
-      if (!canvas) return;
-      if (row.isSpace || !row.text) {
-        const ctx = canvas.getContext("2d");
-        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-        return;
-      }
-      const samples = textSamples(row.text, { maxSamples: row.limit, cut: row.cut });
-      // The canvas's display width (after its row's padding-left offset) is
-      // the width we want to render at. 2x for crisp lines on high-DPI.
-      const displayW = Math.max(120, Math.round(canvas.clientWidth || 400));
-      const dpr = typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 1;
-      const widthPx = Math.round(displayW * dpr);
-      const heightPx = Math.round(48 * dpr);
-      const drawn = renderTextRowCanvas({
-        samples,
-        widthPx,
-        heightPx,
-        fg: "#111111",
-        bg: "#ffffff",
-      });
-      canvas.width = drawn.width;
-      canvas.height = drawn.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.drawImage(drawn, 0, 0);
-    });
-  }, [rows]);
-
-  return (
-    <div className={styles.sheet} aria-hidden="true">
-      {rows.map((row, idx) => {
-        if (row.isSpace) {
-          return <div key={`${row.key}-${idx}`} className={styles.rowEmpty} />;
-        }
-        // Push non-address rows based on their offset ratio
-        const pad = (row.offset / PAGE_W) * 100;
-        return (
-          <div key={`${row.key}-${idx}`} className={styles.row}>
-            <div style={{ paddingLeft: `${pad}%` }} className={styles.rowInner}>
-              <canvas
-                ref={(el) => {
-                  canvasRefs.current[idx] = el;
-                }}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export default function TextPage() {
   const [fields, setFields] = useState<Fields>(DEFAULTS);
   const [toast, setToast] = useState<string | null>(null);
+  const [tts, setTts] = useState<TtsStatus>({ phase: "idle", loaded: 0, total: 0 });
   const [isGenerating, setIsGenerating] = useState(false);
+  // Cache of audio buffers keyed by the field text — so edits that don't
+  // change a field don't re-synthesise it.
+  const audioCache = useRef<Map<string, Float32Array>>(new Map());
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    return subscribeTts(setTts);
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 1600);
+    const t = window.setTimeout(() => setToast(null), 1800);
     return () => window.clearTimeout(t);
   }, [toast]);
 
@@ -164,6 +121,15 @@ export default function TextPage() {
     setTimeout(() => URL.revokeObjectURL(url), 500);
   }, []);
 
+  /** Synthesise (or fetch from cache) one field's audio. */
+  const synthesize = useCallback(async (text: string): Promise<Float32Array> => {
+    const cached = audioCache.current.get(text);
+    if (cached) return cached;
+    const { audio } = await ttsGenerate(text);
+    audioCache.current.set(text, audio);
+    return audio;
+  }, []);
+
   const generatePdf = useCallback(async () => {
     if (!hasAny) {
       setToast("fill in at least one field");
@@ -171,43 +137,47 @@ export default function TextPage() {
     }
     setIsGenerating(true);
     try {
-      // yield so the UI repaints "generating…" before the heavy canvas work
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      await ensureTtsReady();
 
-      const rowHeightPx = Math.round(MARGIN * 0.55); // ~82px per row at 300 DPI — leaves breathing room
-      const letterRows: Array<LetterRow | null> = rows.map((row) => {
-        if (row.isSpace || !row.text) return null;
-        const samples = textSamples(row.text, { maxSamples: row.limit, cut: row.cut });
-        const availablePx = PAGE_W - row.offset - 100;
-        // Sample density: ~1 sample per 0.4px looks right at 300 DPI.
-        const widthPx = Math.min(availablePx, Math.round(samples.length / 0.4));
-        const canvas = renderTextRowCanvas({
-          samples,
-          widthPx: Math.max(200, widthPx),
+      // Fixed per-row pixel width — every row normalises to the same paper-width
+      // target so short fields visually match the body, regardless of duration.
+      const rowTextWidth = (off: number) => Math.max(200, PAGE_W - off - 100);
+
+      const rowHeightPx = Math.round(MARGIN * 0.55); // ~82px per row at 300 DPI
+
+      const letterRows: Array<LetterRow | null> = [];
+      for (const row of rows) {
+        if (row.isSpace || !row.text) {
+          letterRows.push(null);
+          continue;
+        }
+        // Synthesize sequentially — the worker handles one at a time anyway
+        // and this keeps memory bounded for very long body paragraphs.
+        const audio = await synthesize(row.text);
+        const canvas = renderAudioRowCanvas({
+          audio,
+          widthPx: rowTextWidth(row.offset),
           heightPx: rowHeightPx,
           fg: "#000000",
           bg: "#ffffff",
         });
-        return { canvas, offsetPx: row.offset };
-      });
+        letterRows.push({ canvas, offsetPx: row.offset });
+      }
 
       const blob = renderLetterPdfBlob(letterRows, { title: "Soundscribe letter" });
       downloadBlob(blob, "letter.pdf");
       setToast("letter.pdf saved");
     } catch (err) {
       console.error(err);
-      setToast("couldn't generate pdf");
+      const msg = err instanceof Error ? err.message : "unknown";
+      setToast(`couldn't generate: ${msg}`);
     } finally {
       setIsGenerating(false);
     }
-  }, [rows, hasAny, downloadBlob]);
+  }, [rows, hasAny, downloadBlob, synthesize]);
 
-  const speak = useCallback(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      setToast("speech not supported in this browser");
-      return;
-    }
-    window.speechSynthesis.cancel();
+  /** Concatenate all non-empty fields into one utterance and play as WAV. */
+  const readAloud = useCallback(async () => {
     const pieces = [
       fields.address1,
       fields.address2,
@@ -216,28 +186,60 @@ export default function TextPage() {
       fields.text,
       fields.conclusion,
       fields.signature,
-    ]
-      .filter(Boolean)
-      .join(". ");
-    if (!pieces.trim()) {
+    ].filter(Boolean);
+    if (!pieces.length) {
       setToast("nothing to read");
       return;
     }
-    const utter = new SpeechSynthesisUtterance(pieces);
-    utter.rate = 0.95;
-    utter.pitch = 1.0;
-    window.speechSynthesis.speak(utter);
-    setToast("reading aloud");
+    setIsGenerating(true);
+    try {
+      await ensureTtsReady();
+      // Generate a single utterance (kokoro splits internally on sentences).
+      const joined = pieces.join(". ") + ".";
+      const { audio, sampleRate } = await ttsGenerate(joined);
+      const blob = audioToWavBlob(audio, sampleRate);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        URL.revokeObjectURL(audioRef.current.src);
+      } else {
+        audioRef.current = new Audio();
+      }
+      audioRef.current.src = URL.createObjectURL(blob);
+      await audioRef.current.play();
+    } catch (err) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : "unknown";
+      setToast(`couldn't play: ${msg}`);
+    } finally {
+      setIsGenerating(false);
+    }
   }, [fields]);
 
-  const stopSpeaking = useCallback(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+  const stopReading = useCallback(() => {
+    audioRef.current?.pause();
   }, []);
 
   useEffect(() => {
-    return () => stopSpeaking();
-  }, [stopSpeaking]);
+    return () => {
+      const el = audioRef.current;
+      if (el) {
+        el.pause();
+        try {
+          if (el.src) URL.revokeObjectURL(el.src);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+  }, []);
+
+  const loadingLabel = (() => {
+    if (tts.phase === "loading") return "preparing voice…";
+    if (isGenerating) return "composing…";
+    return null;
+  })();
+
+  const primaryDisabled = isGenerating || tts.phase === "loading" || !hasAny;
 
   return (
     <div className="wrap">
@@ -251,7 +253,9 @@ export default function TextPage() {
               <span className="section-title">Recipient</span>
             </div>
             <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="address1">address line 1</label>
+              <label className={styles.fieldLabel} htmlFor="address1">
+                address line 1
+              </label>
               <input
                 className="nm-input"
                 id="address1"
@@ -260,7 +264,9 @@ export default function TextPage() {
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="address2">address line 2</label>
+              <label className={styles.fieldLabel} htmlFor="address2">
+                address line 2
+              </label>
               <input
                 className="nm-input"
                 id="address2"
@@ -269,7 +275,9 @@ export default function TextPage() {
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="address3">address line 3</label>
+              <label className={styles.fieldLabel} htmlFor="address3">
+                address line 3
+              </label>
               <input
                 className="nm-input"
                 id="address3"
@@ -285,7 +293,9 @@ export default function TextPage() {
               <span className="section-title">Sign-off</span>
             </div>
             <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="conclusion">conclusion</label>
+              <label className={styles.fieldLabel} htmlFor="conclusion">
+                conclusion
+              </label>
               <input
                 className="nm-input"
                 id="conclusion"
@@ -294,7 +304,9 @@ export default function TextPage() {
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="signature">signature</label>
+              <label className={styles.fieldLabel} htmlFor="signature">
+                signature
+              </label>
               <input
                 className="nm-input"
                 id="signature"
@@ -305,9 +317,9 @@ export default function TextPage() {
           </div>
 
           <p className={styles.note}>
-            Waveforms are synthesised from the text itself — no audio is sent
-            anywhere. Optionally use your browser&rsquo;s voice to hear the
-            letter while you write it.
+            Each field is spoken by a small neural voice running entirely in
+            your browser, then drawn as a waveform. The model downloads once
+            (~80&nbsp;MB) and is cached for all future visits.
           </p>
         </aside>
 
@@ -318,15 +330,17 @@ export default function TextPage() {
               <span className="section-title">Letter</span>
             </div>
             <p className={styles.intro}>
-              Each field becomes its own row of waveform. Vowels swell,
-              consonants snap, punctuation breathes. Export the whole
-              assembly as a PDF&nbsp;letter.
+              Write a letter. Each row of the PDF is the real acoustic
+              waveform of that line, read aloud by{" "}
+              <strong>kokoro</strong> — no audio leaves your machine.
             </p>
           </div>
 
           <div className="section">
             <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="dear">greeting</label>
+              <label className={styles.fieldLabel} htmlFor="dear">
+                greeting
+              </label>
               <input
                 className="nm-input"
                 id="dear"
@@ -335,7 +349,9 @@ export default function TextPage() {
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="body">body</label>
+              <label className={styles.fieldLabel} htmlFor="body">
+                body
+              </label>
               <textarea
                 className="nm-textarea"
                 id="body"
@@ -348,21 +364,27 @@ export default function TextPage() {
                 type="button"
                 className="nm-btn primary"
                 onClick={generatePdf}
-                disabled={isGenerating || !hasAny}
+                disabled={primaryDisabled}
               >
-                {isGenerating ? "composing…" : "generate pdf"}
+                {loadingLabel ?? "generate pdf"}
               </button>
-              <button type="button" className="nm-btn" onClick={speak}>
+              <button
+                type="button"
+                className="nm-btn"
+                onClick={readAloud}
+                disabled={isGenerating || tts.phase === "loading" || !hasAny}
+              >
                 read aloud
               </button>
-              <button type="button" className="nm-btn" onClick={stopSpeaking}>
+              <button
+                type="button"
+                className="nm-btn"
+                onClick={stopReading}
+              >
                 stop
               </button>
             </div>
-          </div>
 
-          <div className={styles.letterFrame} aria-label="letter preview">
-            <PreviewSheet rows={rows} />
           </div>
 
           <div className="explore">

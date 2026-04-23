@@ -16,6 +16,7 @@ import {
   loadImageFromFile,
   type LoadedImage,
 } from "@/lib/imageSource";
+import { createDemoImage } from "@/lib/demoImage";
 import {
   segmentsFromImage,
   type Mode,
@@ -177,14 +178,24 @@ function paramsFromSearch(search: string): Partial<WaveformParams> {
 }
 
 export default function ImagePage() {
-  const [loaded, setLoaded] = useState<LoadedImage | null>(null);
-  const [sourceName, setSourceName] = useState<string>("upload image");
+  const [loaded, setLoaded] = useState<LoadedImage | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return createDemoImage();
+    } catch {
+      return null;
+    }
+  });
+  const [sourceName, setSourceName] = useState<string>("example image");
+  const [isDemo, setIsDemo] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [params, setParams] = useState<WaveformParams>(() => {
     if (typeof window === "undefined") return DEFAULTS;
     const fromUrl = paramsFromSearch(window.location.search);
-    return { ...DEFAULTS, ...fromUrl };
+    // No URL params = fresh visit. Land on "organic" so the demo looks great out of the box.
+    const base = Object.keys(fromUrl).length ? DEFAULTS : { ...DEFAULTS, ...PRESETS.organic };
+    return { ...base, ...fromUrl };
   });
   const [toast, setToast] = useState<string | null>(null);
 
@@ -218,6 +229,9 @@ export default function ImagePage() {
     try {
       const img = await loadImageFromFile(file);
       setLoaded(img);
+      setIsDemo(false);
+      // fresh upload: drop back to the "organic" preset for a known-good starting point
+      setParams((prev) => ({ ...prev, ...PRESETS.organic }));
     } catch (err) {
       console.error(err);
       setToast("couldn't read that image");
@@ -364,8 +378,9 @@ export default function ImagePage() {
   const thumbUrl = loaded?.thumbnailDataUrl;
   const sub = useMemo(() => {
     if (!loaded) return "drop or browse · png · jpg";
+    if (isDemo) return `${loaded.width} × ${loaded.height} · demo`;
     return `${loaded.width} × ${loaded.height}`;
-  }, [loaded]);
+  }, [loaded, isDemo]);
 
   return (
     <div className="wrap">

@@ -36,6 +36,43 @@ function canvasFromImage(img: HTMLImageElement | ImageBitmap): {
   return { canvas, ctx, w, h };
 }
 
+/**
+ * Build a LoadedImage synchronously from an already-drawn canvas.
+ * Resizes to MAX_WORKING_WIDTH if needed. No async, no ImageBitmap —
+ * safe to call inside a useState initializer.
+ */
+export function loadImageFromCanvas(input: HTMLCanvasElement): LoadedImage {
+  const srcW = input.width;
+  const srcH = input.height;
+  let drawW = srcW;
+  let drawH = srcH;
+  let workCanvas = input;
+  if (drawW > MAX_WORKING_WIDTH) {
+    drawH = Math.round((drawH * MAX_WORKING_WIDTH) / drawW);
+    drawW = MAX_WORKING_WIDTH;
+    workCanvas = document.createElement("canvas");
+    workCanvas.width = drawW;
+    workCanvas.height = drawH;
+    const wctx = workCanvas.getContext("2d");
+    if (!wctx) throw new Error("2d context unavailable");
+    wctx.imageSmoothingEnabled = true;
+    wctx.imageSmoothingQuality = "high";
+    wctx.drawImage(input, 0, 0, drawW, drawH);
+  }
+  const ctx = workCanvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) throw new Error("2d context unavailable");
+  const pixelData = ctx.getImageData(0, 0, drawW, drawH);
+  const lum = extractDarkness(pixelData);
+  return {
+    width: srcW,
+    height: srcH,
+    drawWidth: drawW,
+    drawHeight: drawH,
+    darkness: lum,
+    thumbnailDataUrl: workCanvas.toDataURL("image/png"),
+  };
+}
+
 function extractDarkness(imageData: ImageData): Float32Array {
   const { data, width, height } = imageData;
   const out = new Float32Array(width * height);

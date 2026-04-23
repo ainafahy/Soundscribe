@@ -18,14 +18,26 @@ Soundscribe extends that lineage in two ways:
 
 ## What it does
 
-- **📝 Text → Waveform** — Write a letter, hear it spoken by your browser, watch it become a visual soundwave.
-- **🖼️ Image → Waveform** — Upload a photograph, watch it get scanned and rewritten as dense horizontal waveforms.
+- **🖼️ Image → Waveform** — Upload a photograph, watch it get scanned row-by-row and rewritten as dense horizontal waveforms. Four styles (line / mirror / filled / bars), five presets, live preview as you tweak. Export as PNG, SVG, or PDF.
+- **📝 Text → Waveform** — Write a letter. Each field (address, greeting, body, sign-off, signature) becomes its own handwritten-looking row. Vowels swell, consonants snap, punctuation breathes. Export the whole composition as a PDF.
 
-Export as PNG, SVG, or PDF. No account, no upload to a server, no cost. Everything happens in your browser.
+No account, no upload to a server, no cost. Everything happens in your browser.
 
 ## Tech
 
-Built with Next.js, TypeScript, and the Web Canvas + Web Speech APIs. No backend. No tracking. Runs entirely client-side.
+Built with Next.js 16, TypeScript, and the Web Canvas API. Waveform synthesis is a TypeScript port of [@Amustache](https://github.com/Amustache)'s [Cantwell](https://github.com/Amustache/Cantwell) Python CLI, rewritten to run entirely client-side. PDF export uses [jsPDF](https://github.com/parallax/jsPDF). No backend. No tracking. No external requests except loading fonts.
+
+See [CREDITS.md](./CREDITS.md) for what was ported from where.
+
+## Local development
+
+```bash
+npm install
+npm run dev
+# → http://localhost:3000
+```
+
+Build: `npm run build`. Lint: `npm run lint`.
 
 ## License
 

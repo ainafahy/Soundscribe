@@ -37,6 +37,15 @@ interface Fields {
   signature: string;
 }
 
+function formatBytes(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0 MB";
+  if (n >= 1024 * 1024) {
+    return `${(n / (1024 * 1024)).toFixed(n < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+  }
+  if (n >= 1024) return `${Math.round(n / 1024)} KB`;
+  return `${n} B`;
+}
+
 const DEFAULTS: Fields = {
   address1: "Jerome Chaoss",
   address2: "55 Thedsq Road",
@@ -88,13 +97,17 @@ export default function TextPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [tts, setTts] = useState<TtsStatus>({ phase: "idle", loaded: 0, total: 0 });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   // Cache of audio buffers keyed by the field text — so edits that don't
   // change a field don't re-synthesise it.
   const audioCache = useRef<Map<string, Float32Array>>(new Map());
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    return subscribeTts(setTts);
+    return subscribeTts((s) => {
+      setTts(s);
+      if (s.phase === "ready") setHasLoadedOnce(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -233,8 +246,15 @@ export default function TextPage() {
     };
   }, []);
 
+  const loadingPct =
+    tts.phase === "loading" && tts.total > 0
+      ? Math.min(100, Math.round((tts.loaded / tts.total) * 100))
+      : 0;
   const loadingLabel = (() => {
-    if (tts.phase === "loading") return "preparing voice…";
+    if (tts.phase === "loading") {
+      if (tts.total > 0) return `preparing voice · ${loadingPct}%`;
+      return "preparing voice…";
+    }
     if (isGenerating) return "composing…";
     return null;
   })();
@@ -385,6 +405,41 @@ export default function TextPage() {
               </button>
             </div>
 
+            {tts.phase === "loading" && (
+              <div className={styles.progress} aria-live="polite">
+                <div className={styles.progressTrack}>
+                  <div
+                    className={styles.progressBar}
+                    style={{
+                      width: tts.total > 0 ? `${loadingPct}%` : "12%",
+                    }}
+                  />
+                </div>
+                <div className={styles.progressMeta}>
+                  <span className={styles.progressDot} aria-hidden="true" />
+                  <span>preparing voice model</span>
+                  {tts.total > 0 && (
+                    <span className={styles.progressBytes}>
+                      {formatBytes(tts.loaded)} / {formatBytes(tts.total)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {tts.phase === "error" && (
+              <div className={styles.errorBox} role="alert">
+                couldn&rsquo;t load the voice model — check your connection
+                and refresh, or try the image tool while we investigate.
+              </div>
+            )}
+
+            {!hasLoadedOnce && tts.phase !== "loading" && tts.phase !== "error" && (
+              <p className={styles.firstTimeNote}>
+                first generation downloads the voice model (~80&nbsp;MB).
+                only happens once.
+              </p>
+            )}
           </div>
 
           <div className="explore">

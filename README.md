@@ -27,8 +27,6 @@ No account, no upload to a server, no cost. Everything happens in your browser.
 
 Built with Next.js 16, TypeScript, and the Web Canvas API. Waveform synthesis is a TypeScript port of [@Amustache](https://github.com/Amustache)'s [Cantwell](https://github.com/Amustache/Cantwell) Python CLI, rewritten to run entirely client-side. PDF export uses [jsPDF](https://github.com/parallax/jsPDF). No backend. No tracking. No external requests except loading fonts.
 
-See [CREDITS.md](./CREDITS.md) for what was ported from where.
-
 ## Local development
 
 ```bash
@@ -46,6 +44,5 @@ Build: `npm run build`. Lint: `npm run lint`.
 ## Credits
 
 - Concept: Jen Cantwell
-- Original code: [@Amustache](https://github.com/Amustache)
-- UI design & this implementation: [Aïna Fahy](https://ainafahy.com)
-- Inspired in tool-making spirit by [asciinator.app](https://asciinator.app/)
+- Original code for text to soundwave : [@Amustache](https://github.com/Amustache)
+- UI design & this implementation + image making : [Aïna Fahy](https://ainafahy.com)

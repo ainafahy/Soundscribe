@@ -26,7 +26,6 @@ export default function PillGroup<T extends string>({
           type="button"
           role="radio"
           aria-checked={opt.value === value}
-          aria-selected={opt.value === value}
           onClick={() => onChange(opt.value)}
         >
           {opt.label}

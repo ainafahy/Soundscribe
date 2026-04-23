@@ -181,22 +181,17 @@ export default function ImagePage() {
   const [sourceName, setSourceName] = useState<string>("upload image");
   const [isDragging, setIsDragging] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
-  const [params, setParams] = useState<WaveformParams>(DEFAULTS);
+  const [params, setParams] = useState<WaveformParams>(() => {
+    if (typeof window === "undefined") return DEFAULTS;
+    const fromUrl = paramsFromSearch(window.location.search);
+    return { ...DEFAULTS, ...fromUrl };
+  });
   const [toast, setToast] = useState<string | null>(null);
 
   const previewRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const renderTimer = useRef<number | null>(null);
   const renderSeq = useRef(0);
-
-  // Hydrate params from URL on mount.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const fromUrl = paramsFromSearch(window.location.search);
-    if (Object.keys(fromUrl).length) {
-      setParams((prev) => ({ ...prev, ...fromUrl }));
-    }
-  }, []);
 
   // Sync URL whenever params change.
   useEffect(() => {

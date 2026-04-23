@@ -220,7 +220,7 @@ export function segmentsFromImage(
           envelope[k] = sum / (bEnd - bStart);
         }
 
-        let carrier = carrierSized(wlen, p.noise, p.freq, rng);
+        const carrier = carrierSized(wlen, p.noise, p.freq, rng);
         if (reverse) {
           reverseInPlace(carrier);
           reverseInPlace(envelope);
@@ -249,7 +249,7 @@ export function segmentsFromImage(
         envelope[k] = sum / (bEnd - bStart);
       }
 
-      let carrier = carrierSized(scanTotal, p.noise, p.freq, rng);
+      const carrier = carrierSized(scanTotal, p.noise, p.freq, rng);
       if (reverse) {
         reverseInPlace(carrier);
         reverseInPlace(envelope);

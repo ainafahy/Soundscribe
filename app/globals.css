@@ -264,9 +264,9 @@ button {
   border-radius: var(--radius-pill);
 }
 
-.pills button:hover:not([aria-selected="true"]) { color: var(--ink-strong); }
+.pills button:hover:not([aria-checked="true"]) { color: var(--ink-strong); }
 
-.pills button[aria-selected="true"] {
+.pills button[aria-checked="true"] {
   background: var(--bg);
   color: var(--accent-deep);
   font-weight: 600;

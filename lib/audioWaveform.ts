@@ -36,6 +36,78 @@ export function trimAudioSilence(audio: Float32Array, threshold = 0.015): Float3
   return audio.subarray(start - runway, end);
 }
 
+/**
+ * Split long audio into chunks that each fit one row of the letter,
+ * preferring cut points that fall inside silence gaps (word boundaries)
+ * so we don't slice mid-word.
+ *
+ * For every chunk except the last: we look inside the last 20% of the
+ * allotted window for the longest run of low-amplitude samples. If any
+ * run is at least `minSilenceMs` milliseconds long, we cut at its
+ * midpoint. Otherwise we hard-cut at `maxSamplesPerRow`.
+ *
+ * Mirrors the Python reference's `add_cut_text_to_image` behaviour
+ * (multi-row wrapping with a per-field row cap — Python uses 12).
+ */
+export function chunkAudioAtSilence(
+  audio: Float32Array,
+  maxSamplesPerRow: number,
+  sampleRate: number,
+  maxChunks: number = 15,
+  options: { silenceThreshold?: number; minSilenceMs?: number } = {},
+): Float32Array[] {
+  const silenceThreshold = options.silenceThreshold ?? 0.01;
+  const minSilenceMs = options.minSilenceMs ?? 30;
+  const minSilenceSamples = Math.max(1, Math.floor((minSilenceMs / 1000) * sampleRate));
+  if (audio.length <= maxSamplesPerRow) return [audio];
+
+  const chunks: Float32Array[] = [];
+  let cursor = 0;
+
+  while (cursor < audio.length && chunks.length < maxChunks) {
+    const remaining = audio.length - cursor;
+    if (remaining <= maxSamplesPerRow || chunks.length === maxChunks - 1) {
+      // Last chunk — take everything remaining (up to a hard max so the
+      // row can still render if the caller wanted to truncate further).
+      const take = Math.min(remaining, maxSamplesPerRow);
+      chunks.push(audio.subarray(cursor, cursor + take));
+      break;
+    }
+
+    const windowStart = cursor + Math.floor(maxSamplesPerRow * 0.8);
+    const windowEnd = cursor + maxSamplesPerRow;
+    let bestCut = windowEnd;
+    let bestSilenceLen = 0;
+    let silenceStart = -1;
+
+    for (let i = windowStart; i <= windowEnd; i++) {
+      const val = i < audio.length ? Math.abs(audio[i]) : 0;
+      if (val < silenceThreshold) {
+        if (silenceStart === -1) silenceStart = i;
+      } else if (silenceStart !== -1) {
+        const len = i - silenceStart;
+        if (len >= minSilenceSamples && len > bestSilenceLen) {
+          bestSilenceLen = len;
+          bestCut = silenceStart + Math.floor(len / 2);
+        }
+        silenceStart = -1;
+      }
+    }
+    // Trailing silence that extends to windowEnd
+    if (silenceStart !== -1) {
+      const len = windowEnd - silenceStart;
+      if (len >= minSilenceSamples && len > bestSilenceLen) {
+        bestCut = silenceStart + Math.floor(len / 2);
+      }
+    }
+
+    chunks.push(audio.subarray(cursor, bestCut));
+    cursor = bestCut;
+  }
+
+  return chunks;
+}
+
 export interface AudioRowRenderOptions {
   audio: Float32Array;
   /** Intrinsic canvas pixel width. Every row is normalized to this width. */

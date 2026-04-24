@@ -9,7 +9,11 @@ import {
 } from "react";
 import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
-import { renderAudioRowCanvas, trimAudioSilence } from "@/lib/audioWaveform";
+import {
+  chunkAudioAtSilence,
+  renderAudioRowCanvas,
+  trimAudioSilence,
+} from "@/lib/audioWaveform";
 import { renderLetterPdfBlob, type LetterRow } from "@/lib/renderPdf";
 import {
   ADDR_OFF,
@@ -161,11 +165,13 @@ export default function TextPage() {
       // Duration-proportional row widths. Matches the Python reference
       // (matplotlib figsize = min(samples/SAMPLE_CONST, 1) * 7 inches at
       // 300 DPI = up to 2100 px wide for ~4.5 s of audio → ~467 px/s).
-      // Short fields produce short rows; a long body fills to near the
-      // right margin and any excess audio is truncated ("cut").
       const PX_PER_SECOND = 450;
       const RIGHT_MARGIN_PX = 100;
-      const rowHeightPx = Math.round(MARGIN * 0.55); // ~82px per row at 300 DPI
+      // Row canvases render at the full MARGIN_PX height so wrapped body
+      // rows stack edge-to-edge — the "dense like paper handwriting"
+      // look the Python reference pastes at MARGIN * line.
+      const rowHeightPx = MARGIN;
+      const sampleRate = 24000; // kokoro
 
       // Non-space rows, indexed so we can report "N of M" during synthesis.
       const workRows = rows.filter((r) => !r.isSpace && r.text);
@@ -193,22 +199,31 @@ export default function TextPage() {
         // Trim kokoro's preroll + postroll silence. Raw audio stays
         // cached for read-aloud; only the render-time slice gets trimmed.
         const audio = trimAudioSilence(rawAudio);
-        const sampleRate = 24000; // kokoro
         const maxPx = Math.max(100, PAGE_W - row.offset - RIGHT_MARGIN_PX);
-        const naturalPx = Math.round((audio.length / sampleRate) * PX_PER_SECOND);
-        const widthPx = Math.max(80, Math.min(naturalPx, maxPx));
-        const usedAudio =
-          naturalPx > maxPx
-            ? audio.subarray(0, Math.floor((maxPx / PX_PER_SECOND) * sampleRate))
-            : audio;
-        const canvas = renderAudioRowCanvas({
-          audio: usedAudio,
-          widthPx,
-          heightPx: rowHeightPx,
-          fg: "#000000",
-          bg: "#ffffff",
-        });
-        letterRows.push({ canvas, offsetPx: row.offset });
+        const maxSamplesPerRow = Math.floor((maxPx / PX_PER_SECOND) * sampleRate);
+
+        // Matches the Python reference's two modes per field:
+        //   cut=true  → add_text_to_image (truncate to one row)
+        //   cut=false → add_cut_text_to_image (wrap to many rows,
+        //               word-boundary-aware, capped at 15)
+        // Addresses / greeting / conclusion / signature all truncate;
+        // only the body wraps.
+        const chunks = row.cut
+          ? [audio.length > maxSamplesPerRow ? audio.subarray(0, maxSamplesPerRow) : audio]
+          : chunkAudioAtSilence(audio, maxSamplesPerRow, sampleRate, 15);
+
+        for (const chunk of chunks) {
+          const naturalPx = Math.round((chunk.length / sampleRate) * PX_PER_SECOND);
+          const widthPx = Math.max(80, Math.min(naturalPx, maxPx));
+          const canvas = renderAudioRowCanvas({
+            audio: chunk,
+            widthPx,
+            heightPx: rowHeightPx,
+            fg: "#000000",
+            bg: "#ffffff",
+          });
+          letterRows.push({ canvas, offsetPx: row.offset });
+        }
       }
 
       // Surface the "rendering pdf" stage — jsPDF's encode can take 10–30s

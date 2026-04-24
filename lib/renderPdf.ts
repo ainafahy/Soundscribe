@@ -43,7 +43,11 @@ export function renderLetterPdfBlob(
 ): Blob {
   const PAGE_W_PX = 2480;
   const PAGE_H_PX = 3508;
-  const MARGIN_PX = 150; // int(300 * 0.5) from Python consts — one row of vertical step
+  // Line step between rows. Set so the 100-px canvases produced by the
+  // text page stack at ~1.2× line-height, tight enough to read as a
+  // justified paragraph but breathable enough that adjacent rows don't
+  // collide. One null entry between fields = one line-height gap.
+  const MARGIN_PX = 120;
   const PAGE_W_MM = 210;
   const PAGE_H_MM = 297;
 

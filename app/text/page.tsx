@@ -10,7 +10,7 @@ import {
 import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 import {
-  chunkAudioAtSilence,
+  chunkAudioUniform,
   renderAudioRowCanvas,
   trimAudioSilence,
 } from "@/lib/audioWaveform";
@@ -18,7 +18,6 @@ import { renderLetterPdfBlob, type LetterRow } from "@/lib/renderPdf";
 import {
   ADDR_OFF,
   DEAR_OFF,
-  MARGIN,
   PAGE_W,
   ROWS_OFF,
 } from "@/lib/letterConsts";
@@ -55,7 +54,7 @@ const DEFAULTS: Fields = {
   address2: "55 Thedsq Road",
   address3: "86322 Jeslamos",
   dear: "Dear friend,",
-  text: "I hope this letter finds you well. It has been too long since we last spoke, and I wanted to send a small wave across the distance. The days here move slowly — mornings full of coffee and warm light, afternoons spent reading, evenings that fold quietly into night. Write back when you can. I miss you.",
+  text: "I hope this letter finds you well. It has been too long since we last spoke, and I wanted to send a small wave across the distance. The days here move slowly — mornings full of coffee and warm light, afternoons spent reading, evenings that fold quietly into night. I keep meaning to write more often, but time folds in on itself when the weather is good. Remember me the way I remember you — not in bursts, but in the ordinary quiet of afternoons. Write back when you can. I miss you.",
   conclusion: "With warmth,",
   signature: "Yours truly",
 };
@@ -159,10 +158,10 @@ export default function TextPage() {
       // 300 DPI = up to 2100 px wide for ~4.5 s of audio → ~467 px/s).
       const PX_PER_SECOND = 450;
       const RIGHT_MARGIN_PX = 100;
-      // Row canvases render at the full MARGIN_PX height so wrapped body
-      // rows stack edge-to-edge — the "dense like paper handwriting"
-      // look the Python reference pastes at MARGIN * line.
-      const rowHeightPx = MARGIN;
+      // Canvas height hugs the ink so the stack of rows reads as a
+      // justified paragraph block. Paired with MARGIN_PX=120 inside
+      // renderLetterPdfBlob, that's a line-height of 1.2× the row.
+      const rowHeightPx = 100;
       const sampleRate = 24000; // kokoro
 
       // Non-space rows, indexed so we can report "N of M" during synthesis.
@@ -197,16 +196,28 @@ export default function TextPage() {
         // Matches the Python reference's two modes per field:
         //   cut=true  → add_text_to_image (truncate to one row)
         //   cut=false → add_cut_text_to_image (wrap to many rows,
-        //               word-boundary-aware, capped at 15)
+        //               justified to uniform width, capped at 15)
         // Addresses / greeting / conclusion / signature all truncate;
         // only the body wraps.
         const chunks = row.cut
           ? [audio.length > maxSamplesPerRow ? audio.subarray(0, maxSamplesPerRow) : audio]
-          : chunkAudioAtSilence(audio, maxSamplesPerRow, sampleRate, 15);
+          : chunkAudioUniform(audio, maxSamplesPerRow, sampleRate, 15);
 
-        for (const chunk of chunks) {
-          const naturalPx = Math.round((chunk.length / sampleRate) * PX_PER_SECOND);
-          const widthPx = Math.max(80, Math.min(naturalPx, maxPx));
+        for (let ci = 0; ci < chunks.length; ci++) {
+          const chunk = chunks[ci];
+          const isLast = ci === chunks.length - 1;
+          // For wrapped fields: every row except the last is justified
+          // to maxPx so the paragraph reads as a uniform block. The
+          // last row uses its natural (shorter) width — the "ragged
+          // last line" of a paragraph. Single-row fields also use
+          // natural width.
+          let widthPx: number;
+          if (chunks.length > 1 && !isLast) {
+            widthPx = maxPx;
+          } else {
+            const naturalPx = Math.round((chunk.length / sampleRate) * PX_PER_SECOND);
+            widthPx = Math.max(80, Math.min(naturalPx, maxPx));
+          }
           const canvas = renderAudioRowCanvas({
             audio: chunk,
             widthPx,

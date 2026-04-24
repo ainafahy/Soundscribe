@@ -149,42 +149,96 @@
   border-left: 3px solid var(--accent-warm);
 }
 
-/* ---------- "letter ready" card ---------- */
+/* ---------- Inline PDF preview — matches image tool's preview frame ---------- */
 
-.pdfReady {
-  margin-top: 1.5rem;
-  padding: 1.1rem 1.2rem;
+.previewFrame {
+  position: relative;
+  border-radius: var(--radius-lg);
   background: var(--bg);
-  border-radius: var(--radius);
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 2.25rem 1.25rem 1.25rem;
+  transition: opacity 0.2s;
+  box-shadow: var(--nm-raised);
+  margin-top: 1.5rem;
+}
+
+.previewFrame::before {
+  content: "output";
+  position: absolute;
+  top: 0.95rem;
+  left: 1.15rem;
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.01em;
+  color: var(--ink-dim);
+  z-index: 2;
+  font-weight: 500;
+  text-transform: lowercase;
+  padding: 0.28rem 0.75rem;
+  background: var(--bg);
+  border-radius: var(--radius-pill);
   box-shadow: var(--nm-inset-sm);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.9rem;
 }
 
-.pdfReadyCopy {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-family: var(--serif);
-  font-size: 0.92rem;
-  color: var(--ink);
-}
-
-.pdfReadyDot {
-  width: 9px;
-  height: 9px;
+.previewFrame::after {
+  content: "";
+  position: absolute;
+  top: 1.05rem;
+  right: 1.2rem;
+  width: 14px;
+  height: 14px;
+  background: var(--bg);
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px rgba(156, 168, 139, 0.35);
-  flex-shrink: 0;
+  z-index: 2;
+  box-shadow: var(--nm-inset-sm);
+  transition: all 0.25s;
 }
 
-.pdfActions {
+.previewFrameReady::after {
+  background: var(--accent);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.12),
+    0 0 0 3px rgba(156, 168, 139, 0.2),
+    0 0 12px rgba(156, 168, 139, 0.5);
+}
+
+.previewIframe {
+  width: 100%;
+  aspect-ratio: 210 / 297;
+  max-height: 75vh;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  display: block;
+  box-shadow: var(--nm-raised-sm);
+}
+
+.placeholder {
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  color: var(--muted);
+  letter-spacing: 0;
+  text-align: center;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.placeholder small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+  margin-top: 0.75rem;
+  letter-spacing: 0.02em;
+  font-family: var(--sans);
+}
+
+.downloadRow {
   display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 1rem;
 }
 

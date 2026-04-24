@@ -150,14 +150,6 @@ export default function TextPage() {
       setToast("fill in at least one field");
       return;
     }
-    // Open the preview tab synchronously while the click's user-gesture
-    // context is still valid — most browsers block window.open() called
-    // after an await. We'll navigate it to the blob URL once the PDF is
-    // ready. Drop `noopener` here: browsers return null from open() when
-    // noopener is set, which would prevent the later location set.
-    const previewTab =
-      typeof window !== "undefined" ? window.open("", "_blank") : null;
-
     setIsGenerating(true);
     try {
       await ensureTtsReady();
@@ -237,24 +229,11 @@ export default function TextPage() {
       const url = URL.createObjectURL(blob);
       pdfUrlRef.current = url;
       setPdfUrl(url);
-
-      // Navigate the pre-opened preview tab to the blob URL. If the tab
-      // was blocked/closed, fall back to an anchor click.
-      if (previewTab && !previewTab.closed) {
-        try {
-          previewTab.location.href = url;
-          setToast("letter ready");
-        } catch {
-          setToast("pop-up blocked — use download pdf");
-        }
-      } else {
-        setToast("pop-up blocked — use download pdf");
-      }
+      setToast("letter ready");
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "unknown";
       setToast(`couldn't generate: ${msg}`);
-      if (previewTab && !previewTab.closed) previewTab.close();
     } finally {
       setIsGenerating(false);
       setCompose(null);
@@ -533,32 +512,38 @@ export default function TextPage() {
               </p>
             )}
 
-            {pdfUrl && (
-              <div className={styles.pdfReady} aria-label="letter ready">
-                <div className={styles.pdfReadyCopy}>
-                  <span className={styles.pdfReadyDot} aria-hidden="true" />
-                  <span>your letter is ready — opened in a new tab.</span>
-                </div>
-                <div className={styles.pdfActions}>
-                  <a
-                    className="nm-btn"
-                    href={pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    open again
-                  </a>
-                  <button
-                    type="button"
-                    className="nm-btn primary"
-                    onClick={downloadCurrentPdf}
-                  >
-                    download pdf
-                  </button>
-                </div>
+          </div>
+
+          <div
+            className={`${styles.previewFrame}${pdfUrl ? ` ${styles.previewFrameReady}` : ""}`}
+            aria-label="letter preview"
+          >
+            {pdfUrl ? (
+              <iframe
+                key={pdfUrl}
+                src={pdfUrl}
+                className={styles.previewIframe}
+                title="generated letter"
+              />
+            ) : (
+              <div className={styles.placeholder}>
+                awaiting letter
+                <small>write your message and click generate pdf</small>
               </div>
             )}
           </div>
+
+          {pdfUrl && (
+            <div className={styles.downloadRow}>
+              <button
+                type="button"
+                className="nm-btn primary"
+                onClick={downloadCurrentPdf}
+              >
+                download pdf
+              </button>
+            </div>
+          )}
 
           <div className="explore">
             <span className="explore-label">explore more</span>

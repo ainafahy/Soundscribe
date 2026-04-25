@@ -43,12 +43,13 @@ export function renderLetterPdfBlob(
 ): Blob {
   const PAGE_W_PX = 2480;
   const PAGE_H_PX = 3508;
-  // Line step. The text page renders 150-px canvases with transparent
-  // backgrounds, so a step *less than* the canvas height makes adjacent
-  // rows overlap visually — peaks of one line touch peaks of the next,
-  // exactly like printed text where ascenders and descenders meet
-  // between lines. 110 ≈ 0.73× canvas → ~40 px of overlap.
-  const MARGIN_PX = 110;
+  // Line step matches the row canvas height so rows stack edge-to-edge
+  // with no overlap — overlap with transparent canvases is fragile and
+  // depends on browser-specific drawImage compositing details we'd
+  // rather not bet on. Keeping height + step at 100 gives a tighter
+  // letter than the original 150 (rows visually closer, more lines fit
+  // on the page) without any transparency tricks.
+  const MARGIN_PX = 100;
   const PAGE_W_MM = 210;
   const PAGE_H_MM = 297;
 

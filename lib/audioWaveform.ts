@@ -37,6 +37,53 @@ export function trimAudioSilence(audio: Float32Array, threshold = 0.015): Float3
 }
 
 /**
+ * Cap any run of low-amplitude samples (silence) to at most
+ * `maxSilenceMs` milliseconds. Kokoro inserts ~300–800 ms pauses
+ * between sentences, and at the renderer's pixels-per-second rate
+ * that becomes 150–360 px of pure white space inside a single row,
+ * which makes wrapped paragraphs look broken into floating clumps.
+ *
+ * Compressing those long silences to ~60 ms each preserves the
+ * rhythm of words (small breaths still show as visible breaks) but
+ * removes the runway-sized gaps that read as ugly empty space.
+ */
+export function compressLongSilences(
+  audio: Float32Array,
+  sampleRate: number,
+  maxSilenceMs: number = 60,
+  threshold: number = 0.01,
+): Float32Array {
+  const maxSilenceSamples = Math.max(1, Math.floor((maxSilenceMs / 1000) * sampleRate));
+  // First pass — measure output length
+  let outLen = 0;
+  let silenceRun = 0;
+  for (let i = 0; i < audio.length; i++) {
+    if (Math.abs(audio[i]) < threshold) {
+      silenceRun++;
+      if (silenceRun <= maxSilenceSamples) outLen++;
+    } else {
+      silenceRun = 0;
+      outLen++;
+    }
+  }
+  if (outLen === audio.length) return audio;
+  // Second pass — copy
+  const out = new Float32Array(outLen);
+  let outIdx = 0;
+  silenceRun = 0;
+  for (let i = 0; i < audio.length; i++) {
+    if (Math.abs(audio[i]) < threshold) {
+      silenceRun++;
+      if (silenceRun <= maxSilenceSamples) out[outIdx++] = audio[i];
+    } else {
+      silenceRun = 0;
+      out[outIdx++] = audio[i];
+    }
+  }
+  return out;
+}
+
+/**
  * Split long audio into chunks sized to fit one row each, so that a
  * wrapped field reads as a justified paragraph — all rows the same
  * width, last row naturally shorter.

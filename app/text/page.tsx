@@ -11,6 +11,7 @@ import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 import {
   chunkAudioUniform,
+  compressLongSilences,
   renderAudioRowCanvas,
   trimAudioSilence,
 } from "@/lib/audioWaveform";
@@ -190,9 +191,15 @@ export default function TextPage() {
         await new Promise((r) => requestAnimationFrame(() => r(null)));
 
         const rawAudio = await synthesize(row.text);
-        // Trim kokoro's preroll + postroll silence. Raw audio stays
-        // cached for read-aloud; only the render-time slice gets trimmed.
-        const audio = trimAudioSilence(rawAudio);
+        // Trim kokoro's preroll + postroll silence, then collapse long
+        // mid-utterance pauses (sentence breaks etc.) to a small breath.
+        // Raw audio stays cached for read-aloud — only the render-time
+        // slice is processed.
+        const audio = compressLongSilences(
+          trimAudioSilence(rawAudio),
+          sampleRate,
+          60,
+        );
         const maxPx = Math.max(100, PAGE_W - row.offset - RIGHT_MARGIN_PX);
         const maxSamplesPerRow = Math.floor((maxPx / PX_PER_SECOND) * sampleRate);
 

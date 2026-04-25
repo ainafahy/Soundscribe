@@ -158,10 +158,12 @@ export default function TextPage() {
       // 300 DPI = up to 2100 px wide for ~4.5 s of audio → ~467 px/s).
       const PX_PER_SECOND = 450;
       const RIGHT_MARGIN_PX = 100;
-      // Canvas height hugs the ink so the stack of rows reads as a
-      // justified paragraph block. Paired with MARGIN_PX=120 inside
-      // renderLetterPdfBlob, that's a line-height of 1.2× the row.
-      const rowHeightPx = 100;
+      // Canvas height matches the PDF line-step (150 px) so rows pack
+      // edge-to-edge — the "dense paragraph" look of Jen's reference.
+      // Ink max-amplitude = heightPx × 0.48 ≈ 72 px per side, so peaks
+      // fill ~144 / 150 px vertically in each row, leaving only a
+      // whisper of whitespace between rows.
+      const rowHeightPx = 150;
       const sampleRate = 24000; // kokoro
 
       // Non-space rows, indexed so we can report "N of M" during synthesis.

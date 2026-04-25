@@ -117,14 +117,19 @@ export interface AudioRowRenderOptions {
   heightPx: number;
   fg?: string;
   bg?: string;
-  /**
-   * Minimum pixel amplitude to actually draw. Raised slightly above the
-   * Python's 0.5 threshold to kill low-energy preroll/postroll that
-   * kokoro sometimes emits on short utterances.
-   */
+  /** Minimum pixel amplitude to draw. Lower = denser ink. */
   threshold?: number;
   /** 0..1 — fraction of max |sample| at which amplitude saturates. 1 = no headroom. */
   normalizationCeiling?: number;
+  /**
+   * Gamma-style compression applied to normalized amplitude before drawing.
+   * < 1 boosts quiet samples, leaves peaks untouched. 1 = no compression.
+   * The kokoro TTS audio has a wide dynamic range (short peaks, lots of
+   * near-silence between syllables). A value around 0.55–0.7 pulls the
+   * valleys up so each row reads as a dense continuous line — the look of
+   * Jen Cantwell's original Letter Home.
+   */
+  compression?: number;
 }
 
 /**
@@ -166,8 +171,9 @@ export function renderAudioRowCanvas(opts: AudioRowRenderOptions): HTMLCanvasEle
   const { audio, widthPx, heightPx } = opts;
   const fg = opts.fg ?? "#000000";
   const bg = opts.bg ?? "#ffffff";
-  const threshold = opts.threshold ?? 0.6;
+  const threshold = opts.threshold ?? 0.15;
   const ceiling = opts.normalizationCeiling ?? 0.98;
+  const compression = opts.compression ?? 0.5;
 
   const canvas = document.createElement("canvas");
   canvas.width = widthPx;
@@ -195,7 +201,11 @@ export function renderAudioRowCanvas(opts: AudioRowRenderOptions): HTMLCanvasEle
 
   const path = new Path2D();
   for (let px = 0; px < widthPx; px++) {
-    const amp = peaks[px] * scale * maxAmp;
+    const normalized = peaks[px] * scale;
+    // Gamma-compress toward the ceiling so valleys between syllables
+    // still render as visible ink. Peaks are untouched (1^γ = 1).
+    const compressed = Math.pow(normalized, compression);
+    const amp = compressed * maxAmp;
     if (amp < threshold) continue;
     const x = px + 0.5;
     path.moveTo(x, baseline - amp);

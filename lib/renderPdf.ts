@@ -43,11 +43,12 @@ export function renderLetterPdfBlob(
 ): Blob {
   const PAGE_W_PX = 2480;
   const PAGE_H_PX = 3508;
-  // Line step between rows. Set so the 100-px canvases produced by the
-  // text page stack at ~1.2× line-height, tight enough to read as a
-  // justified paragraph but breathable enough that adjacent rows don't
-  // collide. One null entry between fields = one line-height gap.
-  const MARGIN_PX = 120;
+  // Line step between rows. Matches the Python reference's
+  // MARGIN = int(DPI * SAMPLE_SIZE[1]) = 150. With a 150-px canvas
+  // from the text page, rows stack edge-to-edge so the ink of one row
+  // sits against the ink of the next — that's what makes the letter
+  // read as a dense paragraph in Jen's original, not a list of lines.
+  const MARGIN_PX = 150;
   const PAGE_W_MM = 210;
   const PAGE_H_MM = 297;
 

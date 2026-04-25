@@ -225,7 +225,9 @@ export default function TextPage() {
             widthPx,
             heightPx: rowHeightPx,
             fg: "#000000",
-            bg: "#ffffff",
+            // Transparent bg — composite canvas in renderLetterPdfBlob
+            // is already white. Adjacent rows can overlap without one
+            // wiping the other.
           });
           letterRows.push({ canvas, offsetPx: row.offset });
         }

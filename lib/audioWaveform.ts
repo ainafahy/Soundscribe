@@ -170,7 +170,9 @@ function peakHoldBuckets(audio: Float32Array, widthPx: number): Float32Array {
 export function renderAudioRowCanvas(opts: AudioRowRenderOptions): HTMLCanvasElement {
   const { audio, widthPx, heightPx } = opts;
   const fg = opts.fg ?? "#000000";
-  const bg = opts.bg ?? "#ffffff";
+  // Default to transparent bg so adjacent row canvases can overlap
+  // without one's white background wiping the other's ink.
+  const bg = opts.bg;
   const threshold = opts.threshold ?? 0.15;
   const ceiling = opts.normalizationCeiling ?? 0.98;
   const compression = opts.compression ?? 0.5;
@@ -181,8 +183,10 @@ export function renderAudioRowCanvas(opts: AudioRowRenderOptions): HTMLCanvasEle
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d context unavailable");
 
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, widthPx, heightPx);
+  if (bg && bg !== "transparent") {
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, widthPx, heightPx);
+  }
 
   if (audio.length === 0 || widthPx < 2) return canvas;
 

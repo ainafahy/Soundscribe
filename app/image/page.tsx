@@ -708,14 +708,14 @@ export default function ImagePage() {
               </div>
             )}
           </div>
-
-          <div className="explore">
-            <span className="explore-label">explore more</span>
-            <a className="explore-link" href="/text">
-              Sound letter inspiration <span className="arr">→</span>
-            </a>
-          </div>
         </section>
+      </div>
+
+      <div className="explore">
+        <span className="explore-label">explore more</span>
+        <a className="explore-link" href="/text">
+          Sound letter inspiration <span className="arr">→</span>
+        </a>
       </div>
 
       <Footer />

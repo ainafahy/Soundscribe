@@ -532,14 +532,14 @@ export default function TextPage() {
               </button>
             </div>
           )}
-
-          <div className="explore">
-            <span className="explore-label">explore more</span>
-            <a className="explore-link" href="/image">
-              Image tool <span className="arr">→</span>
-            </a>
-          </div>
         </section>
+      </div>
+
+      <div className="explore">
+        <span className="explore-label">explore more</span>
+        <a className="explore-link" href="/image">
+          Image tool <span className="arr">→</span>
+        </a>
       </div>
 
       <Footer />

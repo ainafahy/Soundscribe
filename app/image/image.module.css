@@ -190,6 +190,10 @@
   transition: all 0.25s;
 }
 
+.previewFrame.hasImage {
+  min-height: auto;
+}
+
 .previewFrame.hasImage::after {
   background: var(--accent);
   box-shadow:

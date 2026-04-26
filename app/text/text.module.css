@@ -226,6 +226,10 @@
   transition: all 0.25s;
 }
 
+.previewFrame.previewFrameReady {
+  min-height: auto;
+}
+
 .previewFrameReady::after {
   background: var(--accent);
   box-shadow:

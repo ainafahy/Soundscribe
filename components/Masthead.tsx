@@ -28,7 +28,9 @@ export default function Masthead() {
             <Link
               key={href}
               href={href}
-              className={`mast-link${active ? " is-active" : ""}`}
+              className={`mast-link${active ? " is-active" : ""}${
+                href === "/" ? " mast-link-home" : ""
+              }`}
               aria-current={active ? "page" : undefined}
             >
               {label}

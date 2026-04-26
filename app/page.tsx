@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
@@ -9,11 +10,6 @@ export default function Home() {
       <Masthead />
 
       <section className={styles.hero}>
-        <p className={styles.eyebrow}>a visual soundwave tool</p>
-        <h1 className={styles.title}>
-          Make a wave
-          <span className={styles.titleBreak}> from anything.</span>
-        </h1>
         <p className={styles.lede}>
           Soundscribe turns photographs and written words into waveforms.
           No backend. No uploads. No tracking. Play around and send me
@@ -24,15 +20,14 @@ export default function Home() {
       <section className={styles.cards}>
         <Link href="/image" className={styles.card}>
           <div className={styles.cardGlyph} aria-hidden="true">
-            <svg viewBox="0 0 120 64" className={styles.cardWave}>
-              <path
-                d="M 0 32 C 8 10, 14 54, 22 32 S 34 10, 42 32 S 54 54, 62 32 S 74 10, 82 32 S 94 54, 102 32 S 114 10, 120 32"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
+            <Image
+              src="/image-2.png"
+              alt=""
+              width={1172}
+              height={634}
+              className={styles.cardImage}
+              priority
+            />
           </div>
           <div className={styles.cardCopy}>
             <span className={styles.cardKicker}>01 · image</span>
@@ -50,13 +45,13 @@ export default function Home() {
 
         <Link href="/text" className={styles.card}>
           <div className={styles.cardGlyph} aria-hidden="true">
-            <svg viewBox="0 0 120 64" className={styles.cardWave}>
-              <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-                <path d="M 4 18 L 116 18" opacity="0.35" />
-                <path d="M 4 32 C 18 20, 30 44, 44 32 S 66 18, 80 32 S 104 42, 116 32" />
-                <path d="M 4 48 L 68 48" opacity="0.35" />
-              </g>
-            </svg>
+            <Image
+              src="/text-2.png"
+              alt=""
+              width={874}
+              height={524}
+              className={styles.cardImage}
+            />
           </div>
           <div className={styles.cardCopy}>
             <span className={styles.cardKicker}>02 · text</span>

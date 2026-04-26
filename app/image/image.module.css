@@ -12,6 +12,10 @@
   .controls {
     position: static !important;
     max-height: none !important;
+    order: 2;
+  }
+  .canvasArea {
+    order: 1;
   }
 }
 
@@ -149,7 +153,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 2.25rem 1.25rem 1.25rem;
+  padding: 3.5rem 1.25rem 1.5rem;
   transition: opacity 0.2s;
   box-shadow: var(--nm-raised);
 }
@@ -190,8 +194,8 @@
   background: var(--accent);
   box-shadow:
     inset 1px 1px 2px rgba(0, 0, 0, 0.12),
-    0 0 0 3px rgba(156, 168, 139, 0.2),
-    0 0 12px rgba(156, 168, 139, 0.5);
+    0 0 0 3px rgba(230, 102, 134, 0.32),
+    0 0 12px rgba(255, 160, 180, 0.75);
 }
 
 .previewCanvas {

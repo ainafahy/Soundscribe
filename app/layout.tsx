@@ -1,28 +1,5 @@
 import type { Metadata } from "next";
-import { Figtree, DM_Sans, Syne_Mono } from "next/font/google";
 import "./globals.css";
-
-const figtree = Figtree({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  display: "swap",
-});
-
-const dmSans = DM_Sans({
-  variable: "--font-serif",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-const syneMono = Syne_Mono({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Soundscribe — visual soundwaves from image & text",
@@ -39,10 +16,14 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${figtree.variable} ${dmSans.variable} ${syneMono.variable}`}
-    >
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=switzer@200,300,400,500,600,700,800,400i,500i,600i&display=swap"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

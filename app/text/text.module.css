@@ -31,6 +31,19 @@
   font-weight: 500;
 }
 
+.introLink {
+  color: var(--accent-deep);
+  font-weight: 500;
+  border-bottom: 1px solid rgba(230, 102, 134, 0.35);
+  transition: border-color 0.2s, color 0.2s;
+  cursor: pointer;
+}
+
+.introLink:hover {
+  border-bottom-color: var(--accent-deep);
+  color: var(--accent-deep);
+}
+
 .field {
   margin-bottom: 1rem;
 }
@@ -115,7 +128,7 @@
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px rgba(156, 168, 139, 0.35);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px rgba(255, 160, 180, 0.55);
   animation: pulse 1.8s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -160,10 +173,25 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 2.25rem 1.25rem 1.25rem;
+  padding: 3.5rem 1.25rem 1.5rem;
   transition: opacity 0.2s;
   box-shadow: var(--nm-raised);
   margin-top: 1.5rem;
+}
+
+.btnSpinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: btnSpin 0.8s linear infinite;
+  vertical-align: -2px;
+}
+
+@keyframes btnSpin {
+  to { transform: rotate(360deg); }
 }
 
 .previewFrame::before {
@@ -202,8 +230,8 @@
   background: var(--accent);
   box-shadow:
     inset 1px 1px 2px rgba(0, 0, 0, 0.12),
-    0 0 0 3px rgba(156, 168, 139, 0.2),
-    0 0 12px rgba(156, 168, 139, 0.5);
+    0 0 0 3px rgba(230, 102, 134, 0.32),
+    0 0 12px rgba(255, 160, 180, 0.75);
 }
 
 .previewIframe {
@@ -234,6 +262,64 @@
   margin-top: 0.75rem;
   letter-spacing: 0.02em;
   font-family: var(--sans);
+}
+
+/* ---------- Composing animation ---------- */
+
+.composing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.composingWave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 96px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.composingWave span {
+  display: block;
+  width: 3px;
+  background: var(--ink-strong);
+  border-radius: 2px;
+  height: 12%;
+  animation: composeWave 1.05s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+@keyframes composeWave {
+  0%, 100% { height: 10%; opacity: 0.55; }
+  50% { height: 90%; opacity: 1; }
+}
+
+.composingHeadline {
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  color: var(--ink-strong);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.composing small {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.02em;
+  font-family: var(--sans);
+  text-transform: lowercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composingWave span {
+    animation-duration: 2.4s;
+  }
 }
 
 .downloadRow {

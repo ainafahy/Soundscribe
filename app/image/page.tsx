@@ -14,9 +14,11 @@ import Footer from "@/components/Footer";
 import PillGroup from "@/components/PillGroup";
 import {
   loadImageFromFile,
+  loadImageFromUrl,
   type LoadedImage,
 } from "@/lib/imageSource";
-import { createDemoImage } from "@/lib/demoImage";
+
+const DEMO_IMAGE_URL = "/demo.png";
 import {
   segmentsFromImage,
   type Mode,
@@ -34,16 +36,16 @@ const DEFAULTS: WaveformParams = {
   mode: "rows",
   style: "filled",
   noise: "noise",
-  rows: 50,
+  rows: 30,
   cols: 30,
-  freq: 200,
-  amp: 2.0,
-  thick: 4,
+  freq: 180,
+  amp: 1.4,
+  thick: 1,
   rotation: 0,
   invert: false,
   fg: "#000000",
   fg2: "#000000",
-  bg: "#ffffff",
+  bg: "#eeece8",
 };
 
 const PRESETS: Record<string, Partial<WaveformParams>> = {
@@ -57,7 +59,7 @@ const PRESETS: Record<string, Partial<WaveformParams>> = {
     thick: 1,
     fg: "#000000",
     fg2: "#000000",
-    bg: "#ffffff",
+    bg: "#eeece8",
     rotation: 0,
     invert: false,
   },
@@ -149,7 +151,9 @@ function paramsFromSearch(search: string): Partial<WaveformParams> {
   const noise = q.get("noise");
   if (noise === "noise" || noise === "sine" || noise === "chirp") out.noise = noise;
   const num = (name: string, lo: number, hi: number): number | undefined => {
-    const v = Number(q.get(name));
+    const raw = q.get(name);
+    if (raw === null) return undefined;
+    const v = Number(raw);
     if (!Number.isFinite(v)) return undefined;
     return Math.max(lo, Math.min(hi, v));
   };
@@ -178,24 +182,29 @@ function paramsFromSearch(search: string): Partial<WaveformParams> {
 }
 
 export default function ImagePage() {
-  const [loaded, setLoaded] = useState<LoadedImage | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return createDemoImage();
-    } catch {
-      return null;
-    }
-  });
+  const [loaded, setLoaded] = useState<LoadedImage | null>(null);
   const [sourceName, setSourceName] = useState<string>("example image");
   const [isDemo, setIsDemo] = useState(true);
+
+  // Load the demo image on mount — async so SSR/CSR match (no hydration warning).
+  useEffect(() => {
+    let cancelled = false;
+    void loadImageFromUrl(DEMO_IMAGE_URL).then(
+      (img) => {
+        if (!cancelled) setLoaded(img);
+      },
+      (err) => console.error("demo image failed to load", err),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [isDragging, setIsDragging] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [params, setParams] = useState<WaveformParams>(() => {
     if (typeof window === "undefined") return DEFAULTS;
     const fromUrl = paramsFromSearch(window.location.search);
-    // No URL params = fresh visit. Land on "organic" so the demo looks great out of the box.
-    const base = Object.keys(fromUrl).length ? DEFAULTS : { ...DEFAULTS, ...PRESETS.organic };
-    return { ...base, ...fromUrl };
+    return { ...DEFAULTS, ...fromUrl };
   });
   const [toast, setToast] = useState<string | null>(null);
 
@@ -617,30 +626,21 @@ export default function ImagePage() {
             </div>
             <div className="field">
               <div className="color-row">
-                <label className="color-chip">
-                  <input
-                    type="color"
-                    value={params.fg}
-                    onChange={(e) => update("fg", e.target.value)}
-                  />
-                  start
-                </label>
-                <label className="color-chip">
-                  <input
-                    type="color"
-                    value={params.fg2}
-                    onChange={(e) => update("fg2", e.target.value)}
-                  />
-                  end
-                </label>
-                <label className="color-chip">
-                  <input
-                    type="color"
-                    value={params.bg}
-                    onChange={(e) => update("bg", e.target.value)}
-                  />
-                  bg
-                </label>
+                <ColorChip
+                  label="start"
+                  value={params.fg}
+                  onChange={(v) => update("fg", v)}
+                />
+                <ColorChip
+                  label="end"
+                  value={params.fg2}
+                  onChange={(v) => update("fg2", v)}
+                />
+                <ColorChip
+                  label="bg"
+                  value={params.bg}
+                  onChange={(v) => update("bg", v)}
+                />
               </div>
             </div>
             <div className="field">
@@ -722,5 +722,70 @@ export default function ImagePage() {
 
       <div className={`toast${toast ? " show" : ""}`}>{toast ?? ""}</div>
     </div>
+  );
+}
+
+function ColorChip({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [text, setText] = useState(value);
+
+  // Re-sync local text when params change externally (preset, reset).
+  useEffect(() => {
+    setText(value);
+  }, [value]);
+
+  const commit = useCallback(
+    (raw: string) => {
+      const trimmed = raw.trim();
+      const withHash = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+      if (/^#[0-9a-fA-F]{6}$/.test(withHash)) {
+        onChange(withHash.toLowerCase());
+        setText(withHash.toLowerCase());
+      } else {
+        // invalid: snap back to the canonical value
+        setText(value);
+      }
+    },
+    [onChange, value],
+  );
+
+  return (
+    <label className="color-chip">
+      <span className="color-chip-swatch" style={{ background: value }}>
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={`${label} color picker`}
+        />
+      </span>
+      <span className="color-chip-name">{label}</span>
+      <input
+        type="text"
+        className="color-chip-hex"
+        value={text}
+        spellCheck={false}
+        autoCapitalize="off"
+        autoCorrect="off"
+        maxLength={7}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit((e.target as HTMLInputElement).value);
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        aria-label={`${label} hex value`}
+      />
+    </label>
   );
 }

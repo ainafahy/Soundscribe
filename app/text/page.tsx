@@ -23,7 +23,6 @@ import {
   ROWS_OFF,
 } from "@/lib/letterConsts";
 import {
-  audioToWavBlob,
   ensureTtsReady,
   subscribeTts,
   ttsGenerate,
@@ -51,13 +50,13 @@ function formatBytes(n: number): string {
 }
 
 const DEFAULTS: Fields = {
-  address1: "Jerome Chaoss",
-  address2: "55 Thedsq Road",
-  address3: "86322 Jeslamos",
-  dear: "Dear friend,",
-  text: "I hope this letter finds you well. It has been too long since we last spoke, and I wanted to send a small wave across the distance. The days here move slowly — mornings full of coffee and warm light, afternoons spent reading, evenings that fold quietly into night. I keep meaning to write more often, but time folds in on itself when the weather is good. Remember me the way I remember you — not in bursts, but in the ordinary quiet of afternoons. Write back when you can. I miss you.",
-  conclusion: "With warmth,",
-  signature: "Yours truly",
+  address1: "Aïna Fahy",
+  address2: "22 Lovely Road",
+  address3: "00420 Happy City",
+  dear: "My dear lover,",
+  text: "I hope this letter finds you well. It has been too long since we last spoke, and I wanted to send a small wave across the distance. The days here move slowly, mornings full of coffee and warm light, afternoons spent designing things and finding new hobbies, evenings that fold quietly into night, the days are lonely without you. I hope you remember me the way I do, not in bursts, but in the ordinary quiet of afternoons. Write back when you can. I miss you. (PS: I love you)",
+  conclusion: "With Love,",
+  signature: "Yours truly <3",
 };
 
 type FieldKey = keyof Fields;
@@ -113,7 +112,6 @@ export default function TextPage() {
   // Cache of audio buffers keyed by the field text — so edits that don't
   // change a field don't re-synthesise it.
   const audioCache = useRef<Map<string, Float32Array>>(new Map());
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const pdfUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -273,60 +271,8 @@ export default function TextPage() {
     document.body.removeChild(a);
   }, [pdfUrl]);
 
-  /** Concatenate all non-empty fields into one utterance and play as WAV. */
-  const readAloud = useCallback(async () => {
-    const pieces = [
-      fields.address1,
-      fields.address2,
-      fields.address3,
-      fields.dear,
-      fields.text,
-      fields.conclusion,
-      fields.signature,
-    ].filter(Boolean);
-    if (!pieces.length) {
-      setToast("nothing to read");
-      return;
-    }
-    setIsGenerating(true);
-    try {
-      await ensureTtsReady();
-      // Generate a single utterance (kokoro splits internally on sentences).
-      const joined = pieces.join(". ") + ".";
-      const { audio, sampleRate } = await ttsGenerate(joined);
-      const blob = audioToWavBlob(audio, sampleRate);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        URL.revokeObjectURL(audioRef.current.src);
-      } else {
-        audioRef.current = new Audio();
-      }
-      audioRef.current.src = URL.createObjectURL(blob);
-      await audioRef.current.play();
-    } catch (err) {
-      console.error(err);
-      const msg = err instanceof Error ? err.message : "unknown";
-      setToast(`couldn't play: ${msg}`);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [fields]);
-
-  const stopReading = useCallback(() => {
-    audioRef.current?.pause();
-  }, []);
-
   useEffect(() => {
     return () => {
-      const el = audioRef.current;
-      if (el) {
-        el.pause();
-        try {
-          if (el.src) URL.revokeObjectURL(el.src);
-        } catch {
-          /* ignore */
-        }
-      }
       if (pdfUrlRef.current) {
         URL.revokeObjectURL(pdfUrlRef.current);
         pdfUrlRef.current = null;
@@ -338,19 +284,27 @@ export default function TextPage() {
     tts.phase === "loading" && tts.total > 0
       ? Math.min(100, Math.round((tts.loaded / tts.total) * 100))
       : 0;
-  const loadingLabel = (() => {
-    if (tts.phase === "loading") {
-      if (tts.total > 0) return `preparing voice · ${loadingPct}%`;
-      return "preparing voice…";
-    }
+  const isBusy = isGenerating || tts.phase === "loading";
+  const busyLabel = (() => {
+    if (tts.phase === "loading") return "preparing voice";
+    if (compose?.stage === "synth") return "composing letter";
+    if (compose?.stage === "rendering") return "rendering pdf";
+    if (isGenerating) return "composing letter";
+    return null;
+  })();
+
+  const composingHeadline = (() => {
+    if (compose?.stage === "rendering") return "rendering your letter";
+    return "writing your letter";
+  })();
+  const composingSubline = (() => {
     if (compose?.stage === "synth") {
-      return `composing ${compose.current}/${compose.total} · ${compose.label}`;
+      return `voicing line ${compose.current} of ${compose.total}`;
     }
     if (compose?.stage === "rendering") {
-      return "rendering pdf…";
+      return "drawing the pdf — almost there";
     }
-    if (isGenerating) return "composing…";
-    return null;
+    return "listening to each line";
   })();
 
   const primaryDisabled = isGenerating || tts.phase === "loading" || !hasAny;
@@ -446,7 +400,15 @@ export default function TextPage() {
             <p className={styles.intro}>
               Write a letter. Each row of the PDF is the real acoustic
               waveform of that line, read aloud by{" "}
-              <strong>kokoro</strong> — no audio leaves your machine.
+              <a
+                href="https://huggingface.co/hexgrad/Kokoro-82M"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.introLink}
+              >
+                kokoro
+              </a>
+              .
             </p>
           </div>
 
@@ -479,23 +441,13 @@ export default function TextPage() {
                 className="nm-btn primary"
                 onClick={generatePdf}
                 disabled={primaryDisabled}
+                aria-label={busyLabel ?? "generate pdf"}
               >
-                {loadingLabel ?? "generate pdf"}
-              </button>
-              <button
-                type="button"
-                className="nm-btn"
-                onClick={readAloud}
-                disabled={isGenerating || tts.phase === "loading" || !hasAny}
-              >
-                read aloud
-              </button>
-              <button
-                type="button"
-                className="nm-btn"
-                onClick={stopReading}
-              >
-                stop
+                {isBusy ? (
+                  <span className={styles.btnSpinner} aria-hidden="true" />
+                ) : (
+                  "generate pdf"
+                )}
               </button>
             </div>
 
@@ -538,10 +490,23 @@ export default function TextPage() {
           </div>
 
           <div
-            className={`${styles.previewFrame}${pdfUrl ? ` ${styles.previewFrameReady}` : ""}`}
+            className={`${styles.previewFrame}${pdfUrl && !isGenerating ? ` ${styles.previewFrameReady}` : ""}`}
             aria-label="letter preview"
           >
-            {pdfUrl ? (
+            {isGenerating ? (
+              <div className={styles.composing} aria-live="polite">
+                <div className={styles.composingWave} aria-hidden="true">
+                  {Array.from({ length: 36 }).map((_, i) => (
+                    <span
+                      key={i}
+                      style={{ animationDelay: `${(i * 53) % 1100}ms` }}
+                    />
+                  ))}
+                </div>
+                <div className={styles.composingHeadline}>{composingHeadline}</div>
+                <small>{composingSubline}</small>
+              </div>
+            ) : pdfUrl ? (
               <iframe
                 key={pdfUrl}
                 src={pdfUrl}
